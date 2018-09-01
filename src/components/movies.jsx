@@ -1,10 +1,14 @@
 import React, { Component } from 'react';
 import { getMovies } from '../services/fakeMovieService';
+import { paginate } from '../utilities/paginate';
 import Like from './common/like';
+import Pagination from './common/pagination';
 
 class Movies extends Component {
 	state = {
-		movies: getMovies()
+		movies: getMovies(),
+		pageSize: 4,
+		currentPage: 1
 	};
 
 	deleteHandler = movie => {
@@ -20,14 +24,21 @@ class Movies extends Component {
 		this.setState({ movies });
 	};
 
-	render() {
-		const { length: movieCount } = this.state.movies;
+	handlePageChange = page => {
+		this.setState({ currentPage: page });
+	};
 
-		if (movieCount === 0) return <h3>There are no movies in the database.</h3>;
+	render() {
+		const { length: count } = this.state.movies;
+		const { pageSize, currentPage, movies: allMovies } = this.state;
+
+		if (count === 0) return <h3>There are no movies in the database.</h3>;
+
+		const movies = paginate(allMovies, currentPage, pageSize);
 
 		return (
 			<React.Fragment>
-				<h3>Showing {this.state.movies.length} movies in the database</h3>
+				<h3>Showing {count} movies in the database</h3>
 				<table className="table">
 					<thead>
 						<tr>
@@ -40,7 +51,7 @@ class Movies extends Component {
 						</tr>
 					</thead>
 					<tbody>
-						{this.state.movies.map(movie => (
+						{movies.map(movie => (
 							<tr key={movie._id}>
 								<td>{movie.title}</td>
 								<td>{movie.genre.name}</td>
@@ -55,7 +66,8 @@ class Movies extends Component {
 								<td>
 									<button
 										onClick={() => this.deleteHandler(movie)}
-										className="btn btn-danger">
+										className="btn btn-danger"
+									>
 										Delete
 									</button>
 								</td>
@@ -63,6 +75,12 @@ class Movies extends Component {
 						))}
 					</tbody>
 				</table>
+				<Pagination
+					itemsCount={count}
+					pageSize={pageSize}
+					currentPage={currentPage}
+					onPageChange={this.handlePageChange}
+				/>
 			</React.Fragment>
 		);
 	}
