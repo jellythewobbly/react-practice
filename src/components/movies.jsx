@@ -1,15 +1,24 @@
 import React, { Component } from 'react';
 import { getMovies } from '../services/fakeMovieService';
+import { getGenres } from '../services/fakeGenreService';
 import { paginate } from '../utilities/paginate';
-import Like from './common/like';
+import MoviesTable from './moviesTable';
 import Pagination from './common/pagination';
+import ListGroup from './common/listGroup';
 
 class Movies extends Component {
 	state = {
-		movies: getMovies(),
+		movies: [],
+		genres: [],
 		pageSize: 4,
-		currentPage: 1
+		currentPage: 1,
+		selectedGenre: {}
 	};
+
+	componentDidMount() {
+		const genres = [{ name: 'All Genres' }, ...getGenres()];
+		this.setState({ movies: getMovies(), genres, selectedGenre: genres[0] });
+	}
 
 	deleteHandler = movie => {
 		const movies = this.state.movies.filter(m => m._id !== movie._id);
@@ -28,60 +37,57 @@ class Movies extends Component {
 		this.setState({ currentPage: page });
 	};
 
+	handleGenreSelect = genre => {
+		this.setState({ selectedGenre: genre, currentPage: 1 });
+	};
+
 	render() {
 		const { length: count } = this.state.movies;
-		const { pageSize, currentPage, movies: allMovies } = this.state;
+		const {
+			pageSize,
+			currentPage,
+			movies: allMovies,
+			genres,
+			selectedGenre
+		} = this.state;
 
 		if (count === 0) return <h3>There are no movies in the database.</h3>;
 
-		const movies = paginate(allMovies, currentPage, pageSize);
+		const filtered =
+			selectedGenre && selectedGenre._id
+				? allMovies.filter(m => m.genre._id === selectedGenre._id)
+				: allMovies;
+
+		let movies = paginate(filtered, currentPage, pageSize);
+		// Added to ensure no displaying of empty page
+		if (movies.length === 0 && currentPage > 0) {
+			this.setState({ currentPage: currentPage - 1 });
+		}
 
 		return (
-			<React.Fragment>
-				<h3>Showing {count} movies in the database</h3>
-				<table className="table">
-					<thead>
-						<tr>
-							<th>Title</th>
-							<th>Genre</th>
-							<th>Stock</th>
-							<th>Rate</th>
-							<th />
-							<th />
-						</tr>
-					</thead>
-					<tbody>
-						{movies.map(movie => (
-							<tr key={movie._id}>
-								<td>{movie.title}</td>
-								<td>{movie.genre.name}</td>
-								<td>{movie.numberInStock}</td>
-								<td>{movie.dailyRentalRate}</td>
-								<td>
-									<Like
-										liked={movie.liked}
-										onClick={() => this.likeHandler(movie)}
-									/>
-								</td>
-								<td>
-									<button
-										onClick={() => this.deleteHandler(movie)}
-										className="btn btn-danger"
-									>
-										Delete
-									</button>
-								</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-				<Pagination
-					itemsCount={count}
-					pageSize={pageSize}
-					currentPage={currentPage}
-					onPageChange={this.handlePageChange}
-				/>
-			</React.Fragment>
+			<div className="row">
+				<div className="col-3">
+					<ListGroup
+						items={genres}
+						selectedItem={selectedGenre}
+						onItemSelect={this.handleGenreSelect}
+					/>
+				</div>
+				<div className="col">
+					<h3>Showing {filtered.length} movies in the database</h3>
+					<MoviesTable
+						movies={movies}
+						onLike={this.likeHandler}
+						onDelete={this.deleteHandler}
+					/>
+					<Pagination
+						itemsCount={filtered.length}
+						pageSize={pageSize}
+						currentPage={currentPage}
+						onPageChange={this.handlePageChange}
+					/>
+				</div>
+			</div>
 		);
 	}
 }
