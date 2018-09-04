@@ -5,6 +5,7 @@ import { paginate } from '../utilities/paginate';
 import MoviesTable from './moviesTable';
 import Pagination from './common/pagination';
 import ListGroup from './common/listGroup';
+import _ from 'lodash';
 
 class Movies extends Component {
 	state = {
@@ -12,20 +13,20 @@ class Movies extends Component {
 		genres: [],
 		pageSize: 4,
 		currentPage: 1,
-		selectedGenre: {}
+		sortColumn: { path: 'title', order: 'asc' }
 	};
 
 	componentDidMount() {
-		const genres = [{ name: 'All Genres' }, ...getGenres()];
+		const genres = [{ _id: '', name: 'All Genres' }, ...getGenres()];
 		this.setState({ movies: getMovies(), genres, selectedGenre: genres[0] });
 	}
 
-	deleteHandler = movie => {
+	handleDelete = movie => {
 		const movies = this.state.movies.filter(m => m._id !== movie._id);
 		this.setState({ movies });
 	};
 
-	likeHandler = movie => {
+	handleLike = movie => {
 		const movies = [...this.state.movies];
 		const index = movies.indexOf(movie);
 		movies[index] = { ...movies[index] };
@@ -41,6 +42,10 @@ class Movies extends Component {
 		this.setState({ selectedGenre: genre, currentPage: 1 });
 	};
 
+	handleSort = sortColumn => {
+		this.setState({ sortColumn });
+	};
+
 	render() {
 		const { length: count } = this.state.movies;
 		const {
@@ -48,7 +53,8 @@ class Movies extends Component {
 			currentPage,
 			movies: allMovies,
 			genres,
-			selectedGenre
+			selectedGenre,
+			sortColumn
 		} = this.state;
 
 		if (count === 0) return <h3>There are no movies in the database.</h3>;
@@ -58,7 +64,9 @@ class Movies extends Component {
 				? allMovies.filter(m => m.genre._id === selectedGenre._id)
 				: allMovies;
 
-		let movies = paginate(filtered, currentPage, pageSize);
+		const sorted = _.orderBy(filtered, [sortColumn.path], [sortColumn.order]);
+
+		let movies = paginate(sorted, currentPage, pageSize);
 		// Added to ensure no displaying of empty page
 		if (movies.length === 0 && currentPage > 0) {
 			this.setState({ currentPage: currentPage - 1 });
@@ -77,8 +85,10 @@ class Movies extends Component {
 					<h3>Showing {filtered.length} movies in the database</h3>
 					<MoviesTable
 						movies={movies}
-						onLike={this.likeHandler}
-						onDelete={this.deleteHandler}
+						sortColumn={sortColumn}
+						onLike={this.handleLike}
+						onDelete={this.handleDelete}
+						onSort={this.handleSort}
 					/>
 					<Pagination
 						itemsCount={filtered.length}

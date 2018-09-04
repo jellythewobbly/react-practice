@@ -6,7 +6,7 @@ const ListGroup = props => {
 		<ul className="list-group">
 			{items.map(item => (
 				<li
-					key={item[textProp]}
+					key={item[idProp]}
 					className={
 						selectedItem === item ? 'list-group-item active' : 'list-group-item'
 					}
